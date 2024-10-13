@@ -95,6 +95,16 @@ python structur.py input_file_or_folder
      ```
    - **Explanation**: This pattern captures sections where the text is prefixed by `==` and suffixed by a code enclosed in double square brackets. Additionally, it can include an optional identifier denoted by `^id-[identifier]` at the end, as used by the Obsidian plugin [Quadro](https://github.com/chrisgrieser/obsidian-quadro), which allows for coding text in [Obsidian](https://obsidian.md).
 
-## Mac OS X Automator Workflow for Running Structur
+## Using Structur on Mac OS X
 
-You can use an Automator workflow on Mac OS X to easily run Structur on selected files or directories directly from Finder. The workflow can be saved in the ~/Library/Services folder, allowing you to right-click on any file or folder and run Structur from the Quick Actions menu in the Contextual Menu in the Finder.
+## Packaging
+
+To create a standalone executable of **Structur**, use the `package_structur.py` script. This bundles the (`structur.py`) and necessary dependencies into a single executable file, making it easy to run from the Terminal, without requiring Python or additional libraries.
+
+Add export PATH="/path/to/packeged/script:$PATH" to `~/.zshrc`
+
+## Automator
+
+Now, you can use an Automator workflow on Mac OS X to run **Structur** on a selected file or directories directly from the Finder's Quick Actions menu.
+
+ Save the workflow in the ~/Library/Services folder, so you 
