@@ -108,3 +108,8 @@ Add export PATH="/path/to/packeged/script:$PATH" to `~/.zshrc`
 Now, you can use an Automator workflow on Mac OS X to run **Structur** on a selected file or directories directly from the Finder's Quick Actions menu.
 
  Save the workflow in the ~/Library/Services folder.
+
+ ## Citation
+
+ Please [cite](./citation.cff) as: 
+> Tubb, Daniel. *Structur.py*. GitHub, 2024. https://github.com/dtubb/structur.
