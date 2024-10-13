@@ -94,3 +94,7 @@ python structur.py input_file_or_folder
      [[character]]==The importance of character development in storytelling==[[character]] ^id-12345
      ```
    - **Explanation**: This pattern captures sections where the text is prefixed by `==` and suffixed by a code enclosed in double square brackets. Additionally, it can include an optional identifier denoted by `^id-[identifier]` at the end, as used by the Obsidian plugin [Quadro](https://github.com/chrisgrieser/obsidian-quadro), which allows for coding text in [Obsidian](https://obsidian.md).
+
+## Mac OS X Automator Workflow for Running Structur
+
+You can use an Automator workflow on Mac OS X to easily run Structur on selected files or directories directly from Finder. The workflow can be saved in the ~/Library/Services folder, allowing you to right-click on any file or folder and run Structur from the Quick Actions menu in the Contextual Menu in the Finder.
