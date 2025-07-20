@@ -1,4 +1,4 @@
-# # Structur 📚✨: Structure Research Notes
+## Structur: Structure Research Notes
 
 - **Flexible Input**: Extract coded text from individual files, folders, and subdirectories.
 - **Markdown Output**: Extracted snippets of text are saved as individual markdown files.
@@ -11,10 +11,30 @@
 
 Not knowing much about how McPhee and Strauss' **Structur** worked, this Python **Structur** extracts coded text from files and folders.
 
+## Version Information
+
+**Current Version**: 0.0.1.dev2
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
+
 ## Installation Instructions
 
 ### Requirements
-- **Python 3.7 or later**: Ensure you have Python installed. You can check your version by running `python --version` or `python3 --version` in your terminal.
+- **Python 3.8 or later**: Ensure you have Python installed. You can check your version by running `python --version` or `python3 --version` in your terminal.
+
+### Testing
+The project includes comprehensive unit tests. To run the tests:
+
+```bash
+# Run all tests
+./test.sh
+
+# Or run tests directly
+python tests/run_tests.py
+
+# Or use unittest
+python -m unittest tests.test_structur -v
+```
 
 ### Installation Steps
 
@@ -26,12 +46,14 @@ Not knowing much about how McPhee and Strauss' **Structur** worked, this Python 
    cd structur
    ```
 
-2. **Create a Conda Environment**:
-   It is recommended to create a Conda environment to manage dependencies. You can create one using the following command:
+2. **Create a Virtual Environment**:
+   It is recommended to create a virtual environment to manage dependencies. You can create one using the following command:
 
    ```bash
-   conda create --name structur python=3.8
-   conda activate structur
+   python -m venv .venv
+   source .venv/bin/activate  # On macOS/Linux
+   # or
+   .venv\Scripts\activate     # On Windows
    ```
 
 3. **Install Required Packages**:
@@ -48,7 +70,15 @@ Not knowing much about how McPhee and Strauss' **Structur** worked, this Python 
    python structur.py --help
    ```
 
+   To check the current version:
+
+   ```bash
+   python structur.py version
+   ```
+
 ## Usage
+
+### Command Line Interface
 
 To use **Structur**, run the command line interface with the following syntax:
 
@@ -62,6 +92,42 @@ Or, simply you can use the script to run structur with just the file or director
 python structur.py input_file_or_folder
 ```
 
+### Programmatic Usage
+
+You can also use **Structur** as a Python function in your own scripts:
+
+```python
+import structur
+
+# Basic usage
+result = structur.process_structur("input_file.md")
+
+# With custom settings
+result = structur.process_structur(
+    input_path="input_folder/",
+    output_folder="custom_output",
+    code_filters="workflow,productivity",
+    link_to_source=True,
+    verbose=False
+)
+
+# Access the results
+print(f"Output folder: {result['output_folder']}")
+print(f"Files processed: {result['processed_count']}")
+print(f"Operations: {result['operations']}")
+print(f"Extracted codes: {result['extracted_codes']}")
+print(f"Word counts: {result['word_counts']}")
+```
+
+The `process_structur()` function returns a dictionary with:
+- `output_folder`: Path to the output folder
+- `processed_count`: Number of files processed
+- `operations`: Dictionary with operation counts (created_new, appended, duplicates_skipped)
+- `extracted_codes`: List of extracted code names
+- `word_counts`: Dictionary with word count statistics (original, coded, uncoded, duplicates)
+
+See `example_usage.py` for more examples.
+
 ### Arguments
 - **input_path** (str): Path to the input file or folder.
   
@@ -70,23 +136,36 @@ python structur.py input_file_or_folder
 - **--code-filters** (str, optional): Comma-separated list of code filters. Defaults to None.
 - **--extensions** (str, optional): Comma-separated list of file extensions to process. Defaults to an empty string.
 - **--link-to-source** (bool, optional): Whether to include a link to the source file in the output. Defaults to False.
+- **--code-format** (str, optional): The format for codes (e.g., "{{ }}" or "[[ ]]"). Defaults to "{{ }}".
+- **--codes-file** (str, optional): Path to codes.txt file to read master codes list. Defaults to None.
+- **--regenerate-codes** (bool, optional): Whether to regenerate empty files for all codes in codes.txt. Defaults to False.
+- **--auto-codes-file** (bool, optional): Whether to automatically create/update codes.txt with extracted codes. Defaults to False.
+- **--uncoded-folder** (str, optional): Path to folder for uncoded text. If specified, extracts all text without codes to separate files. Defaults to None.
+- **--duplicate-folder** (str, optional): Path to folder for duplicate text. If specified, saves duplicate text instances to separate files. Defaults to None.
 - **--install-completion**: Install completion for the current shell.
 - **--show-completion**: Show completion for the current shell, to copy it or customize the installation.
 - **--help**: Show this message and exit.
 
 ## Format for Text Codes 
 
-### 1. **Multiline Code Format**
-   - **Pattern**: `[[code]]==text==[[code]]`
+Structur supports two code formats: `{{code}}` and `[[code]]` (double curly braces or double square brackets).
+
+### **Unified Code Format**
+   - **Pattern**: `{{code}}==text=={{code}}` or `[[code]]==text==[[code]]`
    - **Example**:
      ```
-     [[theme]]==The significance of the landscape in literature. This theme explores how various authors depict natural settings to
+     {{theme}}==The significance of the landscape in literature. This theme explores how various authors depict natural settings to
      reflect their characters' emotional states and thematic concerns.
 
-     However, the actual coded text is multiple lines.==[[theme]]
+     However, the actual coded text is multiple lines.=={{theme}}
      ```
-   - **Explanation**: This pattern identifies sections where a code is enclosed in double square brackets and followed by `==` to separate it from the corresponding text. This format allows for multiline text.
+   - **Single Line Example**:
+     ```
+     {{character}}==The importance of character development in storytelling=={{character}} ^id-12345
+     ```
+   - **Explanation**: This unified pattern identifies sections where a code is enclosed in double brackets/braces, followed by `==` to separate it from the corresponding text, and ending with the same code. The text can be single line or multiline. An optional identifier `^id-[identifier]` can be added at the end, as used by the Obsidian plugin [Quadro](https://github.com/chrisgrieser/obsidian-quadro), which allows for coding text in [Obsidian](https://obsidian.md).
 
+<<<<<<< HEAD
 ### 2. **Single Line Code Format**
    - **Pattern**: `[[code]]==text==[[code]] ^id-[identifier]`
    - **Example**:
@@ -113,3 +192,142 @@ Now, you can use an Automator workflow on Mac OS X to run **Structur** on a sele
 
  Please [cite](./citation.cff) as: 
 > Tubb, Daniel. *Structur.py*. GitHub, 2024. https://github.com/dtubb/structur.
+=======
+## Iterative Workflow with Codes.txt
+
+Structur supports an iterative workflow where you can continuously add new material to existing coded files. This is perfect for research and writing projects where you want to build up your coded content over time.
+
+### Master Codes List
+
+Create a `codes.txt` file to define your master list of codes:
+
+```
+# Master codes list for structur.py
+# Lines starting with # are comments and will be ignored
+# Empty lines are also ignored
+
+workflow
+productivity
+writing
+ideas
+research
+notes
+projects
+tasks
+inspiration
+reflection
+```
+
+### Workflow Examples
+
+**1. Set up your coded folder with empty files:**
+```bash
+python structur.py . --output-folder my_coded_notes --regenerate-codes
+```
+
+**2. Process new material into existing coded folder:**
+```bash
+python structur.py input_file.md --auto-codes-file
+```
+
+**3. Extract uncoded text to separate folder:**
+```bash
+python structur.py input_file.md --uncoded-folder uncoded_text
+```
+
+This will create a separate folder containing all text that doesn't have any codes, preserving the original filenames.
+
+**4. Extract duplicate text to separate folder:**
+```bash
+python structur.py input_file.md --duplicate-folder duplicate_text
+```
+
+This will create a separate folder containing all duplicate text instances, helping you identify and analyze duplicate content.
+```bash
+python structur.py to-code/ --output-folder my_coded_notes
+```
+
+**3. Add more material later (appends to existing files):**
+```bash
+python structur.py more-input/ --output-folder my_coded_notes
+```
+
+**4. Automatically manage codes.txt (new feature):**
+```bash
+python structur.py input_file.md --auto-codes-file
+```
+
+This will automatically create or update a `codes.txt` file in the same directory as your input file, adding any new codes that were extracted.
+
+### Key Features
+
+- **No Duplication**: Automatically skips duplicate content
+- **Iterative Processing**: Can run multiple times on same output folder
+- **Master Control**: codes.txt acts as the source of truth
+- **Clear Logging**: See exactly what happened during processing
+- **Manual Control**: You decide when to archive/delete source files
+- **Auto Codes Management**: Automatically create and update codes.txt files with new codes
+
+### Recommended Folder Structure
+
+```
+inbox/           # Raw notebooks and sources
+to-code/         # Raw uncoded text files ready for processing  
+coded/           # Text organized by code (structur.py output)
+codes.txt        # Master list of codes
+synthesis/       # Developed ideas from coded content
+```
+
+### Example File
+
+See `example.md` in this repository for a complete example showing all the supported code formats.
+
+### Operation Logging
+
+Structur provides detailed logging of all operations:
+
+- **Created**: New files created with content
+- **Appended**: Content added to existing files
+- **Duplicates Skipped**: Content that was already present
+- **Regenerated**: Empty files created from codes.txt
+
+Example output:
+```
+Read 10 codes from codes.txt
+Created empty file: workflow.md
+Created empty file: productivity.md
+...
+Regenerated files: 10 created, 0 already existed
+Processing file: example_input.md
+...
+Appended 2 entries to existing file: workflow.md
+Appended 1 entries to existing file: productivity.md
+...
+Structur completed. Output files are in the 'my_coded_notes' folder.
+Total files processed: 1
+Operations: 0 new files created, 3 files appended to, 0 duplicates skipped
+
+Word Count Summary:
+Original text: 15,234 words
+Coded text: 8,456 words
+Uncoded text: 5,123 words
+Duplicate text: 1,234 words
+Total accounted: 14,813 words
+Difference: 421 words
+Note: 421 words missing - this may be due to:
+  - Headers, footers, and structural text
+  - Whitespace and formatting differences
+  - Code markers and syntax
+```
+
+### Logging System
+
+**Structur** uses a built-in logging system that provides better control over output:
+
+- **Verbose Mode (`verbose=True`)**: Shows detailed progress messages, file processing info, and operation summaries
+- **Silent Mode (`verbose=False`)**: Suppresses most output, only showing error messages
+- **Log Levels**: The system uses standard Python logging levels (DEBUG, INFO, WARNING, ERROR)
+- **Consistent Output**: Works the same whether called from CLI or programmatically
+
+The logging system automatically handles output formatting and ensures consistent behavior across different usage patterns.
+>>>>>>> fe22ae5 (Enhance README.md with version information, installation instructions, and usage examples. Update requirements.txt to use typer==0.16.0. Refactor structur.py for improved logging and modular processing. Modify workflow scripts for better environment handling and input processing.)

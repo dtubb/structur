@@ -1,195 +1,520 @@
-import os
-import re
-import shutil
+#!/usr/bin/env python3
+"""
+Structur New - A modular, reliable text processing system for extracting and organizing coded content.
+
+This version uses a removal-based approach to ensure no data loss and provides
+comprehensive error handling and logging.
+"""
+
 import typer
+from pathlib import Path
+from typing import Optional
+import sys
+import logging
 
-app = typer.Typer()
+# Add the src directory to the Python path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-def process_file(file_path, output_folder, code_filters, link_to_source, code_dict):
+from src.models.config import ProcessingConfig
+from src.processors.main_processor import StructurProcessor
+
+app = typer.Typer(
+    name="structur-new",
+    help="Modular text processing system for extracting and organizing coded content",
+    add_completion=False
+)
+
+
+def setup_logging(verbose: bool = False) -> None:
+    """Setup logging configuration."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+
+
+@app.command()
+def process(
+    input_folder: Path = typer.Argument(
+        ...,
+        help="Path to the folder containing markdown files to process",
+        exists=True,
+        file_okay=False,
+        dir_okay=True
+    ),
+    output_folder: Path = typer.Argument(
+        ...,
+        help="Path to the output folder where results will be saved"
+    ),
+    coded_folder: str = typer.Option(
+        "coded",
+        "--coded-folder",
+        help="Name of the folder for coded content"
+    ),
+    uncoded_folder: str = typer.Option(
+        "uncoded",
+        "--uncoded-folder", 
+        help="Name of the folder for uncoded content"
+    ),
+    duplicates_folder: str = typer.Option(
+        "duplicates",
+        "--duplicates-folder",
+        help="Name of the folder for duplicate content"
+    ),
+    malformed_folder: str = typer.Option(
+        "malformed",
+        "--malformed-folder",
+        help="Name of the folder for malformed content"
+    ),
+    preserve_codes: bool = typer.Option(
+        False,
+        "--preserve-codes",
+        help="Preserve code markers in the output files"
+    ),
+    append_mode: bool = typer.Option(
+        True,
+        "--append/--overwrite",
+        help="Append to existing files instead of overwriting"
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose logging"
+    ),
+    stats_only: bool = typer.Option(
+        False,
+        "--stats-only",
+        help="Only show statistics, don't process files"
+    ),
+    codes_file: Optional[Path] = typer.Option(
+        None,
+        "--codes-file",
+        help="Path to codes.txt file to read master codes list"
+    ),
+    auto_codes_file: bool = typer.Option(
+        False,
+        "--auto-codes-file",
+        help="Automatically create/update codes.txt with extracted codes"
+    ),
+    regenerate_codes: bool = typer.Option(
+        False,
+        "--regenerate-codes",
+        help="Regenerate empty files for all codes in codes.txt"
+    )
+):
     """
-    Process a single file and extract coded text.
-
-    Args:
-        file_path (str): Path to the file to process.
-        output_folder (str): Path to the output folder.
-        code_filters (list): List of code filters (regex patterns).
-        link_to_source (bool): Whether to include a link to the source file in the output.
-        code_dict (dict): Dictionary to store the extracted codes and their associated text.
-
-    The function supports two code formats:
-    1. Multiline code format: [[code]] == text == [[code]]
-    2. Single line code format: == text == [[code]] ^id-[identifier]
-
-    The extracted codes and their associated text are stored in the code_dict dictionary.
-    """
-    print(f"Processing file: {file_path}")
-    with open(file_path, 'r', encoding='utf-8') as file:
-        content = file.read()
-        print(f"File content length: {len(content)}")
-        
-        multiline_codes = re.findall(r'\[\[(.*?)\]\]\s*==\s*(.*?)\s*==\s*\[\[\1\]\]', content, re.DOTALL)
-        print(f"Found {len(multiline_codes)} multiline codes")
-        
-        single_line_codes = re.findall(r'==\s*(.*?)\s*==\s*\[\[(.*?)\]\](?:\s*\^id-[^\s]+)?', content, re.DOTALL)
-        print(f"Found {len(single_line_codes)} single line codes")
-        
-        # Process multiline codes
-        for code, text in multiline_codes:
-            print(f"Processing multiline code: {code}")
-            if not code_filters or any(re.match(pattern, code, re.IGNORECASE) for pattern in code_filters):
-                if code not in code_dict:
-                    code_dict[code] = []
-                code_dict[code].append((text.strip(), file_path))
-        
-        # Process single line codes
-        for text, code in single_line_codes:
-            print(f"Processing single line code: {code}")
-            if code not in code_dict:
-                if not code_filters or any(re.match(pattern, code, re.IGNORECASE) for pattern in code_filters):
-                    code_dict[code] = [(text.strip(), file_path)]
-            else:
-                existing_texts = [t[0] for t in code_dict[code]]
-                if text.strip() not in existing_texts:
-                    if not code_filters or any(re.match(pattern, code, re.IGNORECASE) for pattern in code_filters):
-                        code_dict[code].append((text.strip(), file_path))
+    Process markdown files to extract and organize coded content.
     
-    print(f"Processed codes: {list(code_dict.keys())}") 
-
-def write_code_files(code_dict, output_folder, link_to_source):
+    This command processes all markdown files in the input folder using a removal-based
+    approach that ensures no data loss. Content is organized into separate folders
+    based on type (coded, uncoded, duplicates, malformed, already coded).
     """
-    Write the extracted codes and their associated text to individual files.
+    setup_logging(verbose)
+    
+    try:
+        # Create processing configuration
+        config = ProcessingConfig(
+            input_folder=input_folder,
+            output_base=output_folder,
+            coded_folder=coded_folder,
+            uncoded_folder=uncoded_folder,
+            duplicates_folder=duplicates_folder,
+            malformed_folder=malformed_folder,
+            preserve_codes_in_output=preserve_codes,
+            append_mode=append_mode,
+            global_duplicate_detection=True,
+            codes_file=codes_file,
+            auto_codes_file=auto_codes_file,
+            regenerate_codes=regenerate_codes
+        )
+        
+        # Create processor
+        processor = StructurProcessor(config)
+        
+        # Validate configuration
+        if not processor.validate_configuration():
+            typer.echo("❌ Configuration validation failed", err=True)
+            raise typer.Exit(1)
+        
+        if stats_only:
+            # Show current folder statistics
+            folder_stats = processor.get_folder_statistics()
+            print_folder_statistics(folder_stats)
+            return
+        
+        # Process the folder
+        typer.echo(f"🚀 Processing folder: {input_folder}")
+        typer.echo(f"📁 Output folder: {output_folder}")
+        
+        stats = processor.process_folder()
+        
+        # Display results
+        print_processing_results(stats)
+        
+        typer.echo("✅ Processing completed successfully!")
+        
+    except Exception as e:
+        typer.echo(f"❌ Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
+def single(
+    file_path: Path = typer.Argument(
+        ...,
+        help="Path to the markdown file to process",
+        exists=True,
+        file_okay=True,
+        dir_okay=False
+    ),
+    output_folder: Path = typer.Argument(
+        ...,
+        help="Path to the output folder where results will be saved"
+    ),
+    preserve_codes: bool = typer.Option(
+        False,
+        "--preserve-codes",
+        help="Preserve code markers in the output files"
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose logging"
+    )
+):
+    """
+    Process a single markdown file.
+    
+    This command processes a single markdown file and extracts coded content
+    using the same reliable, removal-based approach.
+    """
+    setup_logging(verbose)
+    
+    try:
+        # Use the file's parent directory as input folder for configuration
+        input_folder = file_path.parent
+        
+        # Create configuration
+        config = ProcessingConfig(
+            input_folder=input_folder,
+            output_base=output_folder,
+            preserve_codes_in_output=preserve_codes
+        )
+        
+        # Create processor
+        processor = StructurProcessor(config)
+        
+        # Validate configuration
+        if not processor.validate_configuration():
+            typer.echo("❌ Configuration validation failed", err=True)
+            raise typer.Exit(1)
+        
+        # Process the single file
+        typer.echo(f"🚀 Processing file: {file_path}")
+        typer.echo(f"📁 Output folder: {output_folder}")
+        
+        success = processor.process_single_file(file_path)
+        
+        if success:
+            # Display results
+            stats = processor.get_processing_statistics()
+            print_processing_results(stats)
+            typer.echo("✅ File processed successfully!")
+        else:
+            typer.echo("❌ File processing failed", err=True)
+            raise typer.Exit(1)
+        
+    except Exception as e:
+        typer.echo(f"❌ Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
+def stats(
+    output_folder: Path = typer.Argument(
+        ...,
+        help="Path to the output folder to analyze",
+        exists=True,
+        file_okay=False,
+        dir_okay=True
+    )
+):
+    """
+    Show statistics for an existing output folder.
+    
+    This command analyzes the contents of an output folder and shows
+    detailed statistics about the processed content.
+    """
+    try:
+        # Create a minimal config for stats
+        config = ProcessingConfig(
+            input_folder=Path("."),  # Dummy input folder
+            output_base=output_folder
+        )
+        
+        processor = StructurProcessor(config)
+        folder_stats = processor.get_folder_statistics()
+        
+        print_folder_statistics(folder_stats)
+        
+    except Exception as e:
+        typer.echo(f"❌ Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+def print_processing_results(stats: dict) -> None:
+    """Print processing results in a formatted way."""
+    typer.echo("\n📊 PROCESSING RESULTS")
+    typer.echo("=" * 50)
+    
+    # Basic stats
+    typer.echo(f"Files processed: {stats.get('files_processed', 0)}")
+    typer.echo(f"Coded blocks found: {stats.get('coded_blocks_found', 0)}")
+    typer.echo(f"Malformed blocks found: {stats.get('malformed_blocks_found', 0)}")
+    typer.echo(f"Duplicates found: {stats.get('duplicates_found', 0)}")
+    typer.echo(f"Total words processed: {stats.get('total_words_processed', 0)}")
+
+    # Folder stats
+    if 'folder_stats' in stats:
+        typer.echo("\n📁 FOLDER BREAKDOWN")
+        typer.echo("-" * 30)
+        for folder_type, folder_info in stats['folder_stats'].items():
+            file_count = folder_info.get('file_count', 0)
+            word_count = folder_info.get('total_words', 0)
+            typer.echo(f"{folder_type:15}: {file_count:3d} files, {word_count:6d} words")
+    
+    # Errors
+    if stats.get('errors'):
+        typer.echo(f"\n⚠️  ERRORS ({len(stats['errors'])})")
+        typer.echo("-" * 20)
+        for error in stats['errors'][:5]:  # Show first 5 errors
+            typer.echo(f"  • {error}")
+        if len(stats['errors']) > 5:
+            typer.echo(f"  ... and {len(stats['errors']) - 5} more errors")
+
+
+def print_folder_statistics(folder_stats: dict) -> None:
+    """Print folder statistics in a formatted way."""
+    typer.echo("\n📊 FOLDER STATISTICS")
+    typer.echo("=" * 50)
+    
+    total_files = 0
+    total_words = 0
+    
+    for folder_type, stats in folder_stats.items():
+        file_count = stats.get('file_count', 0)
+        word_count = stats.get('total_words', 0)
+        size_mb = stats.get('total_size_bytes', 0) / (1024 * 1024)
+        
+        total_files += file_count
+        total_words += word_count
+        
+        typer.echo(f"{folder_type:15}: {file_count:3d} files, {word_count:6d} words, {size_mb:.1f} MB")
+    
+    typer.echo("-" * 50)
+    typer.echo(f"{'TOTAL':15}: {total_files:3d} files, {total_words:6d} words")
+
+
+def process_folder(
+    input_folder: str | Path,
+    output_folder: str | Path,
+    coded_folder: str = "coded",
+    uncoded_folder: str = "uncoded", 
+    duplicates_folder: str = "duplicates",
+    malformed_folder: str = "malformed",
+    originals_folder: str = "originals",
+    verbose: bool = False
+) -> dict:
+    """
+    Process a folder of markdown files programmatically.
 
     Args:
-        code_dict (dict): Dictionary containing the extracted codes and their associated text.
-        output_folder (str): Path to the output folder.
-        link_to_source (bool): Whether to include a link to the source file in the output.
-
-    The function creates a separate file for each code in the output folder.
-    If link_to_source is True, it includes a link to the source file in the output.
-    """
-    for code, text_list in code_dict.items():
-        code_file = os.path.join(output_folder, f"{code}.md")
-        os.makedirs(os.path.dirname(code_file), exist_ok=True)
-        with open(code_file, 'w', encoding='utf-8') as out_file:
-            for text, file_path in text_list:
-                if link_to_source:
-                    relative_path = os.path.relpath(file_path, output_folder)
-                    out_file.write(f"## [{relative_path}]({relative_path})\n\n")
-                out_file.write(text + "\n\n")
-
-def process_folder(folder_path, output_folder, code_filters, extensions, link_to_source):
-    """
-    Process all files in a folder and its subfolders.
-
-    Args:
-        folder_path (str): Path to the folder to process.
-        output_folder (str): Path to the output folder.
-        code_filters (list): List of code filters (regex patterns).
-        extensions (list): List of file extensions to process.
-        link_to_source (bool): Whether to include a link to the source file in the output.
+        input_folder: Path to folder containing markdown files
+        output_folder: Path to output folder 
+        coded_folder: Name of coded content subfolder
+        uncoded_folder: Name of uncoded content subfolder
+        duplicates_folder: Name of duplicates subfolder
+        malformed_folder: Name of malformed content subfolder
+        originals_folder: Name of originals subfolder
+        verbose: Enable verbose logging
 
     Returns:
-        int: Count of processed files.
-
-    The function recursively processes all files with the specified extensions in the folder and its subfolders.
-    It calls the process_file function for each file and stores the extracted codes and their associated text in a dictionary.
-    Finally, it calls the write_code_files function to write the extracted codes to individual files.
+        Dictionary containing processing statistics
     """
-    count = 0
-    code_dict = {}
-
-    if not os.path.exists(folder_path):
-        print(f"Error: Folder '{folder_path}' does not exist.")
-        return count
-
-    if not os.path.isdir(folder_path):
-        print(f"Error: '{folder_path}' is not a valid directory.")
-        return count
-
-    for root, dirs, files in os.walk(folder_path):
-        for file in files:
-            _, ext = os.path.splitext(file)
-            
-            if ext.lower() in extensions:
-                file_path = os.path.join(root, file)
-                process_file(file_path, output_folder, code_filters, link_to_source, code_dict)
-                count += 1
-
-    write_code_files(code_dict, output_folder, link_to_source)
-    return count
+    # Setup logging
+    setup_logging(verbose)
     
+    # Convert to Path objects
+    input_path = Path(input_folder)
+    output_path = Path(output_folder)
+    
+    # Create configuration
+    config = ProcessingConfig(
+        input_folder=input_path,
+        output_base=output_path,
+        coded_folder=coded_folder,
+        uncoded_folder=uncoded_folder,
+        duplicates_folder=duplicates_folder,
+        malformed_folder=malformed_folder,
+        originals_folder=originals_folder
+    )
+    
+    # Create and run processor
+    processor = StructurProcessor(config)
+    results = processor.process_folder()
+    
+    return results
+
+
 @app.command()
-def main(input_path: str, 
-         output_folder: str = None, 
-         code_filters: str = None, 
-         extensions: str = '', 
-         link_to_source: bool = False):
+def version():
+    """Show version information."""
+    from src import __version__
+    typer.echo(f"Structur New v{__version__}")
+    typer.echo("A modular, reliable text processing system")
+
+
+@app.command()
+def main(
+    input_path: Path = typer.Argument(
+        ...,
+        help="Path to the input file or folder to process",
+        exists=True
+    ),
+    output_folder: Optional[Path] = typer.Option(
+        None,
+        "--output-folder",
+        help="Path to the output folder (defaults to input_path_structur)"
+    ),
+    coded_folder: str = typer.Option(
+        "coded",
+        "--coded-folder",
+        help="Name of the folder for coded content"
+    ),
+    uncoded_folder: str = typer.Option(
+        "uncoded",
+        "--uncoded-folder", 
+        help="Name of the folder for uncoded content"
+    ),
+    duplicates_folder: str = typer.Option(
+        "duplicates",
+        "--duplicates-folder",
+        help="Name of the folder for duplicate content"
+    ),
+    malformed_folder: str = typer.Option(
+        "malformed",
+        "--malformed-folder",
+        help="Name of the folder for malformed content"
+    ),
+    preserve_codes: bool = typer.Option(
+        False,
+        "--preserve-codes",
+        help="Preserve code markers in the output files"
+    ),
+    append_mode: bool = typer.Option(
+        True,
+        "--append/--overwrite",
+        help="Append to existing files instead of overwriting"
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose logging"
+    ),
+    codes_file: Optional[Path] = typer.Option(
+        None,
+        "--codes-file",
+        help="Path to codes.txt file to read master codes list"
+    ),
+    auto_codes_file: bool = typer.Option(
+        False,
+        "--auto-codes-file",
+        help="Automatically create/update codes.txt with extracted codes"
+    ),
+    regenerate_codes: bool = typer.Option(
+        False,
+        "--regenerate-codes",
+        help="Regenerate empty files for all codes in codes.txt"
+    )
+):
     """
-    Main function to process files and extract coded text.
-
-    Args:
-        input_path (str): Path to the input file or folder.
-        output_folder (str, optional): Path to the output folder. Defaults to None.
-        code_filters (str, optional): Comma-separated list of code filters. Defaults to None.
-        extensions (str, optional): Comma-separated list of file extensions to process. Defaults to an empty string.
-        link_to_source (bool, optional): Whether to include a link to the source file in the output. Defaults to False.
-
-    The function processes the input file or folder and extracts coded text based on the specified code formats.
-    It applies code filters (if provided) to filter the extracted codes.
-    The extracted codes and their associated text are written to individual files in the output folder.
+    Main command for processing files or folders.
+    
+    This is an alias for the process command that works with both files and folders.
     """
-    # Process code filters
-    if code_filters:
-        # Split code_filters if it's a string of comma-separated values
-        code_filters = code_filters.split(',')
-        # Convert wildcards to regex format
-        code_filters_regex = [re.escape(f).replace("\\*", ".*") for f in code_filters]
-        # Create a string with filters for the folder name
-        filter_folder_suffix = '_' + '_'.join(code_filters)
+    setup_logging(verbose)
+    
+    # Determine if input is a file or folder
+    if input_path.is_file():
+        # Process single file
+        if output_folder is None:
+            output_folder = input_path.parent / f"{input_path.stem}_structur"
+        
+        # Create configuration for single file
+        config = ProcessingConfig(
+            input_folder=input_path.parent,
+            output_base=output_folder,
+            coded_folder=coded_folder,
+            uncoded_folder=uncoded_folder,
+            duplicates_folder=duplicates_folder,
+            malformed_folder=malformed_folder,
+            preserve_codes_in_output=preserve_codes,
+            append_mode=append_mode,
+            global_duplicate_detection=True,
+            codes_file=codes_file,
+            auto_codes_file=auto_codes_file,
+            regenerate_codes=regenerate_codes
+        )
+        
+        # Process the single file
+        processor = StructurProcessor(config)
+        success = processor.process_single_file(input_path)
+        
+        if success:
+            # Display results
+            stats = processor.get_processing_statistics()
+            print_processing_results(stats)
+            typer.echo("✅ File processed successfully!")
+        else:
+            typer.echo("❌ File processing failed", err=True)
+            raise typer.Exit(1)
+            
+    elif input_path.is_dir():
+        # Process folder
+        if output_folder is None:
+            output_folder = input_path.parent / f"{input_path.name}_structur"
+        
+        # Create configuration for folder processing
+        config = ProcessingConfig(
+            input_folder=input_path,
+            output_base=output_folder,
+            coded_folder=coded_folder,
+            uncoded_folder=uncoded_folder,
+            duplicates_folder=duplicates_folder,
+            malformed_folder=malformed_folder,
+            preserve_codes_in_output=preserve_codes,
+            append_mode=append_mode,
+            global_duplicate_detection=True,
+            codes_file=codes_file,
+            auto_codes_file=auto_codes_file,
+            regenerate_codes=regenerate_codes
+        )
+        
+        # Process the folder
+        processor = StructurProcessor(config)
+        stats = processor.process_folder()
+        
+        # Display results
+        print_processing_results(stats)
+        typer.echo("✅ Folder processed successfully!")
     else:
-        # If code_filters is None, use an empty list and no folder suffix
-        code_filters_regex = []
-        filter_folder_suffix = ''
-        code_filters = []  # Ensure code_filters is a list
+        typer.echo("❌ Input path must be a file or directory", err=True)
+        raise typer.Exit(1)
 
-    # Determine the base output folder name based on the input path and filters
-    base_name = os.path.basename(os.path.splitext(input_path)[0])
-    default_output_folder = base_name + '_structur' + filter_folder_suffix
-
-    if not output_folder:
-        output_folder = default_output_folder
-    else:
-        # Normalize the provided output folder name
-        output_folder = re.sub(r'\W+', '_', output_folder)
-
-    # Ensure the output directory exists
-    os.makedirs(output_folder, exist_ok=True)
-
-    # Process extensions
-    if not extensions:
-        extensions = ['.txt', '.md']
-    elif isinstance(extensions, str):
-        extensions = [ext.strip().lower() for ext in extensions.split(',') if ext.strip()]
-    else:
-        extensions = [ext.strip().lower() for ext in extensions]
-
-    # Process the input path
-    if os.path.isfile(input_path):
-        code_dict = {}
-        process_file(input_path, output_folder, code_filters_regex, link_to_source, code_dict)
-        write_code_files(code_dict, output_folder, link_to_source)
-        processed_count = 1
-    else:
-        processed_count = process_folder(input_path, output_folder, code_filters_regex, extensions, link_to_source)
-
-    # Output results
-    print(f"Structur completed. Output files are in the '{output_folder}' folder.")
-    if code_filters:  # Only print extracted codes if there are any
-        print("Extracted codes:")
-        for filter in code_filters:
-            print(f"- {filter}")
-
-    print(f"\nTotal files processed: {processed_count}")    
 
 if __name__ == "__main__":
     app()

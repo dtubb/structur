@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>AMApplicationBuild</key>
-	<string>523</string>
+	<string>528</string>
 	<key>AMApplicationVersion</key>
 	<string>2.10</string>
 	<key>AMDocumentVersion</key>
@@ -60,31 +60,31 @@
 				<dict>
 					<key>COMMAND_STRING</key>
 					<string>#!/bin/zsh
+set -euo pipefail
 
-# Source the .zshrc file to ensure the environment variables are loaded
+# Load your shell rc (for PATH)
 source ~/.zshrc
 
-# Get the input paths from Automator
+# Grab Automator inputs
 input_paths=("$@")
 
-# Update the PATH environment variable to include the path to any necessary binaries
-export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+# Add Homebrew tools if needed
+export PATH="/opt/homebrew/bin:$PATH"
 
-# Check if the first input path is a directory or a file
-if [ -d "${input_paths[1]}" ]; then
-    # If it's a directory, navigate to its parent directory
-    cd "$(dirname "${input_paths[1]}")"
-elif [ -f "${input_paths[1]}" ]; then
-    # If it's a file, navigate to the directory containing the file
-    cd "$(dirname "${input_paths[1]}")"
-else
-    echo "The path provided does not exist or is not valid."
-    exit 1
-fi
+# Change into your structur project folder
+cd "$HOME/code/structur" || { echo "Missing $HOME/code/structur" &gt;&amp;2; exit 1; }
 
-# Assuming 'structur' is the executable script or command you want to run
-# Run 'structur' with the input paths as arguments
-structur "${input_paths[@]}"</string>
+# Activate virtual environment
+source .venv/bin/activate || { echo "Failed to activate virtual environment" &gt;&amp;2; exit 1; }
+
+# Process each input, appending _structur for the output folder
+for input in "${input_paths[@]}"; do
+  output_folder="${input}_structur"
+  python structur.py main "$input" --output-folder "$output_folder" --auto-codes-file
+done
+
+# Deactivate environment
+deactivate</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
 					<key>inputMethod</key>
@@ -199,7 +199,7 @@ structur "${input_paths[@]}"</string>
 				<key>isViewVisible</key>
 				<integer>1</integer>
 				<key>location</key>
-				<string>380.250000:305.000000</string>
+				<string>333.250000:305.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
