@@ -326,7 +326,10 @@ def process_folder(
     duplicates_folder: str = "duplicates",
     malformed_folder: str = "malformed",
     originals_folder: str = "originals",
-    verbose: bool = False
+    verbose: bool = False,
+    codes_file: Optional[Path] = None,
+    auto_codes_file: bool = False,
+    regenerate_codes: bool = False
 ) -> dict:
     """
     Process a folder of markdown files programmatically.
@@ -359,7 +362,12 @@ def process_folder(
         uncoded_folder=uncoded_folder,
         duplicates_folder=duplicates_folder,
         malformed_folder=malformed_folder,
-        originals_folder=originals_folder
+        preserve_codes_in_output=False,
+        append_mode=True,
+        global_duplicate_detection=True,
+        codes_file=codes_file,
+        auto_codes_file=auto_codes_file,
+        regenerate_codes=regenerate_codes
     )
     
     # Create and run processor

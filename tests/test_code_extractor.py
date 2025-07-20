@@ -51,6 +51,118 @@ class TestCodeExtractor(unittest.TestCase):
         self.assertEqual(conclusion_block.content, "Conclusion content")
         self.assertEqual(conclusion_block.format_type, "[[")
     
+    def test_square_bracket_format_comprehensive(self):
+        """Comprehensive test for [[]] format extraction."""
+        
+        # Test 1: Basic square bracket extraction
+        text = "[[test]]==This is square bracket content==[[test]]"
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].code, "test")
+        self.assertEqual(blocks[0].content, "This is square bracket content")
+        self.assertEqual(blocks[0].format_type, "[[")
+        
+        # Test 2: Multiple square bracket blocks
+        text = """
+        [[first]]==First square bracket block==[[first]]
+        [[second]]==Second square bracket block==[[second]]
+        [[third]]==Third square bracket block==[[third]]
+        """
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 3)
+        codes = [block.code for block in blocks]
+        self.assertIn("first", codes)
+        self.assertIn("second", codes)
+        self.assertIn("third", codes)
+        
+        # All should be square bracket format
+        for block in blocks:
+            self.assertEqual(block.format_type, "[[")
+        
+        # Test 3: Square brackets with whitespace
+        text = "[[  spaced  ]]==Content with spaces in code name==[[  spaced  ]]"
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].code, "spaced")  # Whitespace is stripped
+        self.assertEqual(blocks[0].content, "Content with spaces in code name")
+        self.assertEqual(blocks[0].format_type, "[[")
+        
+        # Test 4: Square brackets with special characters in code name
+        text = "[[code-with-dashes]]==Content with dashes==[[code-with-dashes]]"
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].code, "code-with-dashes")
+        self.assertEqual(blocks[0].format_type, "[[")
+        
+        # Test 5: Square brackets with multi-line content
+        text = """[[multiline]]==This is a multi-line content block.
+It spans several lines and contains various content.
+Line 3 with more content.
+Final line of the block.==[[multiline]]"""
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].code, "multiline")
+        self.assertIn("Line 3 with more content", blocks[0].content)
+        self.assertIn("Final line of the block", blocks[0].content)
+        self.assertEqual(blocks[0].format_type, "[[")
+        
+        # Test 6: Mixed square brackets and curly braces
+        text = """
+        [[square]]==Square bracket content==[[square]]
+        {{curly}}==Curly brace content=={{curly}}
+        [[another-square]]==Another square bracket==[[another-square]]
+        """
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 3)
+        
+        square_blocks = [b for b in blocks if b.format_type == "[["]
+        curly_blocks = [b for b in blocks if b.format_type == "{{"]
+        
+        self.assertEqual(len(square_blocks), 2)
+        self.assertEqual(len(curly_blocks), 1)
+        
+        # Test 7: Square brackets with nested-looking content
+        text = "[[nested]]==This has [[brackets]] that look nested but aren't==[[nested]]"
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].code, "nested")
+        self.assertIn("[[brackets]]", blocks[0].content)  # Should preserve as text
+        self.assertEqual(blocks[0].format_type, "[[")
+        
+        # Test 8: Square brackets with empty content
+        text = "[[empty]]==[[empty]]"
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 0)  # Empty content blocks are not processed
+        
+        # Test 9: Square brackets with unicode content
+        text = "[[unicode]]==Content with unicode: ∫₀^∞, ∀x∈ℝ, 你好世界, 🚀🎉==[[unicode]]"
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].code, "unicode")
+        self.assertIn("∫₀^∞", blocks[0].content)
+        self.assertIn("你好世界", blocks[0].content)
+        self.assertIn("🚀🎉", blocks[0].content)
+        self.assertEqual(blocks[0].format_type, "[[")
+        
+        # Test 10: Square brackets with long code names
+        long_name = "b" * 50
+        text = f"[[{long_name}]]==Content with long code name==[[{long_name}]]"
+        blocks = self.extractor.find_all_coded_blocks(text, "test.md")
+        
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].code, long_name)
+        self.assertEqual(blocks[0].content, "Content with long code name")
+        self.assertEqual(blocks[0].format_type, "[[")
+    
     def test_extract_code_by_name(self):
         """Test extracting blocks by specific code name."""
         text = """

@@ -986,5 +986,592 @@ Unique content in second document."""
         self.assertEqual(updated_content, initial_content)
 
 
+class TestCodesFileFunctionality(unittest.TestCase):
+    """Test codes.txt functionality including reading, writing, and regeneration."""
+    
+    def setUp(self):
+        """Set up test environment."""
+        self.test_dir = Path(tempfile.mkdtemp())
+        self.input_dir = self.test_dir / "input"
+        self.output_dir = self.test_dir / "output"
+        self.input_dir.mkdir()
+    
+    def tearDown(self):
+        """Clean up test environment."""
+        shutil.rmtree(self.test_dir)
+    
+    def create_test_file(self, filename: str, content: str) -> Path:
+        """Create a test file with given content."""
+        file_path = self.input_dir / filename
+        file_path.write_text(content)
+        return file_path
+    
+    def test_auto_codes_file_creation(self):
+        """Test that auto_codes_file creates codes.txt with extracted codes."""
+        content = """# Test Document
+        
+{{research-method}}==This is research methodology content.=={{research-method}}
+
+{{findings}}==These are the research findings.=={{findings}}
+
+Some uncoded text."""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process with auto_codes_file enabled
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            auto_codes_file=True
+        )
+        
+        # Check processing results
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)
+        
+        # Check that codes.txt was created
+        codes_file = self.input_dir / "codes.txt"
+        self.assertTrue(codes_file.exists())
+        
+        # Check codes.txt content
+        codes_content = codes_file.read_text()
+        self.assertIn("research-method", codes_content)
+        self.assertIn("findings", codes_content)
+        
+        # Check that coded files were created
+        self.assertTrue((self.output_dir / "coded" / "research-method.md").exists())
+        self.assertTrue((self.output_dir / "coded" / "findings.md").exists())
+    
+    def test_auto_codes_file_appending(self):
+        """Test that auto_codes_file appends new codes to existing codes.txt."""
+        # Create initial codes.txt
+        initial_codes = """# Master codes list
+existing-code
+another-code
+"""
+        codes_file = self.input_dir / "codes.txt"
+        codes_file.write_text(initial_codes)
+        
+        # Create test content with new codes
+        content = """# Test Document
+        
+{{existing-code}}==This code already exists.=={{existing-code}}
+
+{{new-code}}==This is a new code.=={{new-code}}
+
+{{another-new}}==This is another new code.=={{another-new}}"""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process with auto_codes_file enabled
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            auto_codes_file=True
+        )
+        
+        # Check processing results
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 3)
+        
+        # Check that codes.txt was updated
+        updated_codes = codes_file.read_text()
+        self.assertIn("existing-code", updated_codes)
+        self.assertIn("another-code", updated_codes)
+        self.assertIn("new-code", updated_codes)
+        self.assertIn("another-new", updated_codes)
+        
+        # Check that no duplicates were added
+        lines = [line.strip() for line in updated_codes.split('\n') if line.strip() and not line.startswith('#')]
+        self.assertEqual(len(lines), 4)  # Should have exactly 4 unique codes
+    
+    def test_codes_file_reading(self):
+        """Test reading from an existing codes.txt file."""
+        # Create codes.txt with predefined codes
+        codes_content = """# Master codes list
+workflow
+productivity
+writing
+ideas
+"""
+        codes_file = self.input_dir / "codes.txt"
+        codes_file.write_text(codes_content)
+        
+        # Create test content with some matching codes
+        content = """# Test Document
+        
+{{workflow}}==This is workflow content.=={{workflow}}
+
+{{productivity}}==This is productivity content.=={{productivity}}
+
+{{new-code}}==This is a new code not in the list.=={{new-code}}"""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process with codes_file specified
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            codes_file=codes_file,
+            auto_codes_file=True
+        )
+        
+        # Check processing results
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 3)
+        
+        # Check that all codes were processed
+        self.assertTrue((self.output_dir / "coded" / "workflow.md").exists())
+        self.assertTrue((self.output_dir / "coded" / "productivity.md").exists())
+        self.assertTrue((self.output_dir / "coded" / "new-code.md").exists())
+    
+    def test_regenerate_codes_functionality(self):
+        """Test that regenerate_codes creates empty files for all codes in codes.txt."""
+        # Create codes.txt with codes
+        codes_content = """# Master codes list
+workflow
+productivity
+writing
+ideas
+research
+"""
+        codes_file = self.input_dir / "codes.txt"
+        codes_file.write_text(codes_content)
+        
+        # Create test content with only some of the codes
+        content = """# Test Document
+        
+{{workflow}}==This is workflow content.=={{workflow}}
+
+{{productivity}}==This is productivity content.=={{productivity}}"""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process with regenerate_codes enabled
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            regenerate_codes=True
+        )
+        
+        # Check processing results
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)
+        
+        # Check that empty files were created for all codes in codes.txt
+        coded_dir = self.output_dir / "coded"
+        self.assertTrue((coded_dir / "workflow.md").exists())
+        self.assertTrue((coded_dir / "productivity.md").exists())
+        self.assertTrue((coded_dir / "writing.md").exists())
+        self.assertTrue((coded_dir / "ideas.md").exists())
+        self.assertTrue((coded_dir / "research.md").exists())
+        
+        # Check that empty files have proper headers
+        writing_content = (coded_dir / "writing.md").read_text()
+        self.assertIn("# writing", writing_content)
+        
+        ideas_content = (coded_dir / "ideas.md").read_text()
+        self.assertIn("# ideas", ideas_content)
+        
+        research_content = (coded_dir / "research.md").read_text()
+        self.assertIn("# research", research_content)
+    
+    def test_regenerate_codes_with_existing_content(self):
+        """Test that regenerate_codes doesn't overwrite existing content."""
+        # Create codes.txt with codes
+        codes_content = """# Master codes list
+workflow
+productivity
+writing
+"""
+        codes_file = self.input_dir / "codes.txt"
+        codes_file.write_text(codes_content)
+        
+        # Create test content
+        content = """# Test Document
+        
+{{workflow}}==This is workflow content.=={{workflow}}"""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process with regenerate_codes enabled
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            regenerate_codes=True
+        )
+        
+        # Check that workflow.md has the actual content (not just header)
+        workflow_content = (self.output_dir / "coded" / "workflow.md").read_text()
+        self.assertIn("This is workflow content", workflow_content)
+        
+        # Check that other files have just headers
+        productivity_content = (self.output_dir / "coded" / "productivity.md").read_text()
+        self.assertIn("# productivity", productivity_content)
+        self.assertNotIn("This is workflow content", productivity_content)
+        
+        writing_content = (self.output_dir / "coded" / "writing.md").read_text()
+        self.assertIn("# writing", writing_content)
+        self.assertNotIn("This is workflow content", writing_content)
+    
+    def test_codes_file_with_comments_and_whitespace(self):
+        """Test that codes.txt handles comments and whitespace correctly."""
+        # Create codes.txt with comments and whitespace
+        codes_content = """# Master codes list
+# This is a comment
+
+workflow
+  productivity  
+# Another comment
+writing
+
+ideas
+"""
+        codes_file = self.input_dir / "codes.txt"
+        codes_file.write_text(codes_content)
+        
+        # Test reading codes
+        from src.utils.file_operations import FileManager
+        file_manager = FileManager()
+        codes = file_manager.read_codes_from_file(codes_file)
+        
+        # Should only read non-comment, non-empty lines
+        expected_codes = ["workflow", "productivity", "writing", "ideas"]
+        self.assertEqual(codes, expected_codes)
+    
+    def test_codes_file_duplicate_prevention(self):
+        """Test that codes.txt doesn't add duplicate codes."""
+        # Create initial codes.txt
+        initial_codes = """# Master codes list
+existing-code
+"""
+        codes_file = self.input_dir / "codes.txt"
+        codes_file.write_text(initial_codes)
+        
+        # Create test content with the same code
+        content = """# Test Document
+        
+{{existing-code}}==This is the same code again.=={{existing-code}}"""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process with auto_codes_file enabled
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            auto_codes_file=True
+        )
+        
+        # Check that codes.txt wasn't changed
+        updated_codes = codes_file.read_text()
+        lines = [line.strip() for line in updated_codes.split('\n') if line.strip() and not line.startswith('#')]
+        self.assertEqual(len(lines), 1)  # Should still have only one code
+        self.assertEqual(lines[0], "existing-code")
+    
+    def test_codes_file_without_auto_codes_file(self):
+        """Test that codes.txt is not created when auto_codes_file is disabled."""
+        content = """# Test Document
+        
+{{test-code}}==This is test content.=={{test-code}}"""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process without auto_codes_file
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            auto_codes_file=False
+        )
+        
+        # Check that codes.txt was NOT created
+        codes_file = self.input_dir / "codes.txt"
+        self.assertFalse(codes_file.exists())
+        
+        # Check that processing still worked
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 1)
+        self.assertTrue((self.output_dir / "coded" / "test-code.md").exists())
+    
+    def test_codes_file_with_mixed_formats(self):
+        """Test that codes.txt works with both {{}} and [[]] formats."""
+        content = """# Test Document
+        
+{{curly-code}}==This is curly brace content.=={{curly-code}}
+
+[[square-code]]==This is square bracket content.==[[square-code]]"""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process with auto_codes_file enabled
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            auto_codes_file=True
+        )
+        
+        # Check processing results
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)
+        
+        # Check that codes.txt was created with both codes
+        codes_file = self.input_dir / "codes.txt"
+        self.assertTrue(codes_file.exists())
+        
+        codes_content = codes_file.read_text()
+        self.assertIn("curly-code", codes_content)
+        self.assertIn("square-code", codes_content)
+        
+        # Check that both coded files were created
+        self.assertTrue((self.output_dir / "coded" / "curly-code.md").exists())
+        self.assertTrue((self.output_dir / "coded" / "square-code.md").exists())
+    
+    def test_codes_file_error_handling(self):
+        """Test error handling when codes.txt operations fail."""
+        # Create a directory with the same name as codes.txt to cause an error
+        codes_file = self.input_dir / "codes.txt"
+        codes_file.mkdir()  # This will cause an error when trying to write to it
+        
+        content = """# Test Document
+        
+{{test-code}}==This is test content.=={{test-code}}"""
+        
+        self.create_test_file("test.md", content)
+        
+        # Process with auto_codes_file enabled - should not crash
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir,
+            auto_codes_file=True
+        )
+        
+        # Check that processing still worked despite codes.txt error
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 1)
+        self.assertTrue((self.output_dir / "coded" / "test-code.md").exists())
+
+
+class TestRecursiveFolderProcessingAndSorting(unittest.TestCase):
+    """Test recursive folder processing and file sorting capabilities."""
+    
+    def setUp(self):
+        """Set up test environment with nested folder structure."""
+        self.test_dir = Path(tempfile.mkdtemp())
+        self.input_dir = self.test_dir / "input"
+        self.output_dir = self.test_dir / "output"
+        self.input_dir.mkdir()
+    
+    def tearDown(self):
+        """Clean up test environment."""
+        shutil.rmtree(self.test_dir)
+    
+    def create_nested_structure(self):
+        """Create a complex nested folder structure for testing."""
+        # Create main folders
+        (self.input_dir / "folder1").mkdir()
+        (self.input_dir / "folder2").mkdir()
+        (self.input_dir / "folder1" / "subfolder").mkdir()
+        (self.input_dir / "folder2" / "deep" / "nested").mkdir(parents=True)
+        
+        # Create files with different names to test sorting
+        files_content = {
+            "1_first.md": "{{code1}}==First file content=={{code1}}",
+            "10_tenth.md": "{{code10}}==Tenth file content=={{code10}}",
+            "2_second.md": "{{code2}}==Second file content=={{code2}}",
+            "a_alpha.md": "{{alpha}}==Alpha file content=={{alpha}}",
+            "z_zulu.md": "{{zulu}}==Zulu file content=={{zulu}}",
+            "folder1/file1.md": "{{folder1}}==Folder 1 content=={{folder1}}",
+            "folder1/subfolder/nested1.md": "{{nested1}}==Nested content 1=={{nested1}}",
+            "folder1/subfolder/nested2.md": "{{nested2}}==Nested content 2=={{nested2}}",
+            "folder2/deep/nested/deep1.md": "{{deep1}}==Deep nested content=={{deep1}}",
+            "folder2/deep/nested/deep2.md": "{{deep2}}==Deep nested content 2=={{deep2}}",
+        }
+        
+        for file_path, content in files_content.items():
+            full_path = self.input_dir / file_path
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            full_path.write_text(content)
+        
+        return files_content
+    
+    def test_recursive_folder_processing(self):
+        """Test that structur processes files in nested subdirectories."""
+        self.create_nested_structure()
+        
+        # Process the entire input directory
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        # Check that all files were processed
+        self.assertEqual(results['files_processed'], 10)
+        self.assertEqual(results['coded_blocks_found'], 10)
+        
+        # Check that files from subdirectories were processed
+        coded_dir = self.output_dir / "coded"
+        self.assertTrue((coded_dir / "code1.md").exists())
+        self.assertTrue((coded_dir / "code10.md").exists())
+        self.assertTrue((coded_dir / "code2.md").exists())
+        self.assertTrue((coded_dir / "alpha.md").exists())
+        self.assertTrue((coded_dir / "zulu.md").exists())
+        self.assertTrue((coded_dir / "folder1.md").exists())
+        self.assertTrue((coded_dir / "nested1.md").exists())
+        self.assertTrue((coded_dir / "nested2.md").exists())
+        self.assertTrue((coded_dir / "deep1.md").exists())
+        self.assertTrue((coded_dir / "deep2.md").exists())
+    
+    def test_file_processing_order(self):
+        """Test that files are processed in a consistent order."""
+        self.create_nested_structure()
+        
+        # Get all markdown files in the input directory
+        from src.utils.file_operations import FileManager
+        file_manager = FileManager()
+        md_files = file_manager.get_markdown_files(self.input_dir)
+        
+        # Check that we got all expected files
+        self.assertEqual(len(md_files), 10)
+        
+        # Check that files are sorted consistently
+        file_names = [f.name for f in md_files]
+        
+        # Verify that the list is sorted (should be in natural sort order)
+        import re
+        def natural_sort_key(s):
+            return [int(text) if text.isdigit() else text.lower()
+                   for text in re.split('([0-9]+)', s)]
+        
+        # Check that the files are actually sorted
+        sorted_names = sorted(file_names, key=natural_sort_key)
+        self.assertEqual(file_names, sorted_names, 
+                        f"Files are not sorted naturally. Expected: {sorted_names}, Got: {file_names}")
+        
+        # Also verify that the order is consistent across multiple calls
+        md_files2 = file_manager.get_markdown_files(self.input_dir)
+        file_names2 = [f.name for f in md_files2]
+        self.assertEqual(file_names, file_names2, 
+                        "File order is not consistent across multiple calls")
+    
+    def test_single_file_processing(self):
+        """Test processing a single file."""
+        # Create a single file
+        single_file = self.input_dir / "single.md"
+        single_file.write_text("{{test}}==Single file content=={{test}}")
+        
+        # Process using single command
+        from structur import process_folder
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        # Check results
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 1)
+        self.assertTrue((self.output_dir / "coded" / "test.md").exists())
+    
+    def test_mixed_file_types(self):
+        """Test processing folder with mixed file types (only .md should be processed)."""
+        # Create mixed file types
+        (self.input_dir / "document.md").write_text("{{doc}}==Markdown content=={{doc}}")
+        (self.input_dir / "document.txt").write_text("Text content")
+        (self.input_dir / "document.docx").write_text("Word content")
+        (self.input_dir / "image.png").write_text("Image content")
+        
+        # Process
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        # Only markdown files should be processed
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 1)
+        
+        # Check that only .md file was processed
+        self.assertTrue((self.output_dir / "coded" / "doc.md").exists())
+    
+    def test_empty_folders(self):
+        """Test processing empty folders and folders with no markdown files."""
+        # Create empty folder
+        empty_folder = self.input_dir / "empty"
+        empty_folder.mkdir()
+        
+        # Create folder with non-markdown files
+        mixed_folder = self.input_dir / "mixed"
+        mixed_folder.mkdir()
+        (mixed_folder / "file.txt").write_text("Text content")
+        (mixed_folder / "file.docx").write_text("Word content")
+        
+        # Process
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        # No files should be processed
+        self.assertEqual(results['files_processed'], 0)
+        self.assertEqual(results['coded_blocks_found'], 0)
+    
+    def test_deep_nested_structure(self):
+        """Test processing very deeply nested folder structures."""
+        # Create deep nested structure
+        deep_path = self.input_dir / "level1" / "level2" / "level3" / "level4" / "level5"
+        deep_path.mkdir(parents=True)
+        
+        # Add files at different levels
+        (self.input_dir / "level1" / "file1.md").write_text("{{level1}}==Level 1 content=={{level1}}")
+        (self.input_dir / "level1" / "level2" / "file2.md").write_text("{{level2}}==Level 2 content=={{level2}}")
+        (deep_path / "file5.md").write_text("{{level5}}==Level 5 content=={{level5}}")
+        
+        # Process
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        # Check that all files were processed
+        self.assertEqual(results['files_processed'], 3)
+        self.assertEqual(results['coded_blocks_found'], 3)
+        
+        # Check that files from all levels were processed
+        coded_dir = self.output_dir / "coded"
+        self.assertTrue((coded_dir / "level1.md").exists())
+        self.assertTrue((coded_dir / "level2.md").exists())
+        self.assertTrue((coded_dir / "level5.md").exists())
+    
+    def test_special_characters_in_filenames(self):
+        """Test processing files with special characters in names."""
+        # Create files with special characters
+        special_files = {
+            "file with spaces.md": "{{spaces}}==Content with spaces=={{spaces}}",
+            "file-with-dashes.md": "{{dashes}}==Content with dashes=={{dashes}}",
+            "file_with_underscores.md": "{{underscores}}==Content with underscores=={{underscores}}",
+            "file(1).md": "{{parentheses}}==Content with parentheses=={{parentheses}}",
+            "file[1].md": "{{brackets}}==Content with brackets=={{brackets}}",
+        }
+        
+        for filename, content in special_files.items():
+            (self.input_dir / filename).write_text(content)
+        
+        # Process
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        # Check that all files were processed
+        self.assertEqual(results['files_processed'], 5)
+        self.assertEqual(results['coded_blocks_found'], 5)
+        
+        # Check that all coded files were created
+        coded_dir = self.output_dir / "coded"
+        self.assertTrue((coded_dir / "spaces.md").exists())
+        self.assertTrue((coded_dir / "dashes.md").exists())
+        self.assertTrue((coded_dir / "underscores.md").exists())
+        self.assertTrue((coded_dir / "parentheses.md").exists())
+        self.assertTrue((coded_dir / "brackets.md").exists())
+
+
 if __name__ == '__main__':
     unittest.main() 

@@ -27,7 +27,7 @@ The project includes comprehensive unit tests. To run the tests:
 
 ```bash
 # Run all tests
-./test.sh
+python -m pytest tests/
 
 # Or run tests directly
 python tests/run_tests.py
@@ -78,18 +78,32 @@ python -m unittest tests.test_structur -v
 
 ## Usage
 
+### Examples
+
+Check out the `examples/` folder for sample files and usage examples:
+- `examples/example.md` - Sample markdown file with coded content
+- `examples/codes.txt` - Sample codes.txt file for managing your codes list
+- `examples/README.md` - Detailed usage examples and commands
+
 ### Command Line Interface
 
 To use **Structur**, run the command line interface with the following syntax:
 
 ```bash
-python structur.py input_folder --output_folder output --code_filters "theme,climate" --extensions ".txt,.md" --link_to_source
+python structur.py process input_folder output_folder --auto-codes-file
 ```
 
 Or, simply you can use the script to run structur with just the file or directory path.
 
 ```bash
 python structur.py input_file_or_folder
+```
+
+### Quick Start
+
+Try processing the example file:
+```bash
+python structur.py single examples/example.md my_output
 ```
 
 ### Programmatic Usage
@@ -125,8 +139,6 @@ The `process_structur()` function returns a dictionary with:
 - `operations`: Dictionary with operation counts (created_new, appended, duplicates_skipped)
 - `extracted_codes`: List of extracted code names
 - `word_counts`: Dictionary with word count statistics (original, coded, uncoded, duplicates)
-
-See `example_usage.py` for more examples.
 
 ### Arguments
 - **input_path** (str): Path to the input file or folder.
@@ -165,34 +177,6 @@ Structur supports two code formats: `{{code}}` and `[[code]]` (double curly brac
      ```
    - **Explanation**: This unified pattern identifies sections where a code is enclosed in double brackets/braces, followed by `==` to separate it from the corresponding text, and ending with the same code. The text can be single line or multiline. An optional identifier `^id-[identifier]` can be added at the end, as used by the Obsidian plugin [Quadro](https://github.com/chrisgrieser/obsidian-quadro), which allows for coding text in [Obsidian](https://obsidian.md).
 
-<<<<<<< HEAD
-### 2. **Single Line Code Format**
-   - **Pattern**: `[[code]]==text==[[code]] ^id-[identifier]`
-   - **Example**:
-     ```
-     [[character]]==The importance of character development in storytelling==[[character]] ^id-12345
-     ```
-   - **Explanation**: This pattern captures sections where the text is prefixed by `==` and suffixed by a code enclosed in double square brackets. Additionally, it can include an optional identifier denoted by `^id-[identifier]` at the end, as used by the Obsidian plugin [Quadro](https://github.com/chrisgrieser/obsidian-quadro), which allows for coding text in [Obsidian](https://obsidian.md).
-
-## Using Structur on Mac OS X
-
-## Packaging
-
-To create a standalone executable of **Structur**, use the `package_structur.py` script. This bundles the (`structur.py`) and necessary dependencies into a single executable file, making it easy to run from the Terminal, without requiring Python or additional libraries.
-
-Add export PATH="/path/to/packeged/script:$PATH" to `~/.zshrc`
-
-## Automator
-
-Now, you can use an Automator workflow on Mac OS X to run **Structur** on a selected file or directories directly from the Finder's Quick Actions menu.
-
- Save the workflow in the ~/Library/Services folder.
-
- ## Citation
-
- Please [cite](./citation.cff) as: 
-> Tubb, Daniel. *Structur.py*. GitHub, 2024. https://github.com/dtubb/structur.
-=======
 ## Iterative Workflow with Codes.txt
 
 Structur supports an iterative workflow where you can continuously add new material to existing coded files. This is perfect for research and writing projects where you want to build up your coded content over time.
@@ -330,4 +314,8 @@ Note: 421 words missing - this may be due to:
 - **Consistent Output**: Works the same whether called from CLI or programmatically
 
 The logging system automatically handles output formatting and ensures consistent behavior across different usage patterns.
->>>>>>> fe22ae5 (Enhance README.md with version information, installation instructions, and usage examples. Update requirements.txt to use typer==0.16.0. Refactor structur.py for improved logging and modular processing. Modify workflow scripts for better environment handling and input processing.)
+
+## Citation
+
+Please [cite](./citation.cff) as: 
+> Tubb, Daniel. *Structur.py*. GitHub, 2024. https://github.com/dtubb/structur.

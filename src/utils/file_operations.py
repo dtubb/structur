@@ -121,13 +121,13 @@ class FileManager:
     
     def get_markdown_files(self, directory: Path) -> List[Path]:
         """
-        Get all markdown files in a directory recursively.
+        Get all markdown files in a directory recursively, sorted alphanumerically.
         
         Args:
             directory: Directory to search
             
         Returns:
-            List of markdown file paths
+            List of markdown file paths, sorted alphanumerically
         """
         try:
             if not directory.exists():
@@ -135,6 +135,17 @@ class FileManager:
                 return []
             
             md_files = list(directory.rglob("*.md"))
+            
+            # Sort files alphanumerically (like Finder)
+            def natural_sort_key(path):
+                """Natural sort key that handles numbers properly."""
+                import re
+                # Convert filename to string and split by numbers
+                return [int(text) if text.isdigit() else text.lower()
+                       for text in re.split('([0-9]+)', path.name)]
+            
+            md_files.sort(key=natural_sort_key)
+            
             logger.debug(f"Found {len(md_files)} markdown files in {directory}")
             return md_files
             

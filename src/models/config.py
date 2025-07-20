@@ -60,7 +60,9 @@ class ProcessingConfig:
     
     @property
     def codes_path(self) -> Path:
-        """Get the path to the codes.txt file directory (same as input folder)."""
+        """Get the path to the codes.txt file directory."""
+        if self.codes_file:
+            return self.codes_file.parent
         return self.input_folder
     
     def get_all_output_paths(self) -> List[Path]:

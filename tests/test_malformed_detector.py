@@ -82,6 +82,119 @@ Bad: Text ending==[[bad2]]"""
         self.assertTrue(has_curly, "Should detect malformed curly brace format")
         self.assertTrue(has_square, "Should detect malformed square bracket format")
     
+    def test_square_bracket_malformed_comprehensive(self):
+        """Comprehensive test for malformed [[]] format detection."""
+        
+        # Test 1: Basic malformed square bracket patterns
+        text = """This is normal text.
+
+This text ends with malformed closing==[[bad-bracket]]
+
+More normal text.
+
+Another malformed ending==[[another-bad]]
+
+[[good-code]]==This is properly formatted.==[[good-code]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertEqual(len(malformed), 2)
+        
+        # Check that malformed patterns are detected
+        patterns = [block.malformed_pattern for block in malformed]
+        self.assertTrue(any("==[[bad-bracket]]" in pattern for pattern in patterns))
+        self.assertTrue(any("==[[another-bad]]" in pattern for pattern in patterns))
+        
+        # Test 2: Incomplete square bracket structures
+        text = """[[incomplete]]==This block is missing its closing
+
+[[complete]]==This block is complete.==[[complete]]
+
+[[another-incomplete]]==This is also incomplete
+
+[[final-complete]]==This one is complete too.==[[final-complete]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertEqual(len(malformed), 2)  # Should detect incomplete blocks
+        
+        # Test 3: Wrong bracket patterns
+        text = """[wrong-single]==This uses single brackets.==[wrong-single]
+
+[[[too-many]]]==This uses too many brackets.==[[[too-many]]]
+
+[[correct]]==This uses correct double brackets.==[[correct]]
+
+[wrong-again]==Another single bracket attempt.==[wrong-again]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertGreater(len(malformed), 0)  # Should detect wrong patterns
+        
+        # Test 4: Mixed good and malformed square brackets
+        text = """[[good1]]==This is properly formatted.==[[good1]]
+
+This has malformed closing==[[bad1]]
+
+[[good2]]==More good content.==[[good2]]
+
+Another malformed==[[bad2]]
+
+[[good3]]==Final good content.==[[good3]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertEqual(len(malformed), 2)
+        
+        # Test 5: Square brackets with nested-looking content (should not be malformed)
+        text = """[[nested-looking]]==This content has [[brackets]] that look like they might be nested but are just text content.
+It also has [single brackets] and [[double brackets]] in the content.
+This should not confuse the parser.==[[nested-looking]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertEqual(len(malformed), 0, "Should not flag properly matched opening/closing pairs with nested-looking content")
+        
+        # Test 6: Square brackets with whitespace variations
+        text = """[[  spaced  ]]==Content with spaces in code name==[[  spaced  ]]
+
+This has malformed with spaces==[[  bad-spaced  ]]
+
+[[normal]]==Normal content.==[[normal]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertEqual(len(malformed), 1)
+        
+        # Test 7: Square brackets with special characters in code names
+        text = """[[code-with-dashes]]==Content with dashes.==[[code-with-dashes]]
+
+This has malformed with dashes==[[bad-with-dashes]]
+
+[[code_with_underscores]]==Content with underscores.==[[code_with_underscores]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertEqual(len(malformed), 1)
+        
+        # Test 8: Square brackets with unicode content
+        text = """[[unicode]]==Content with unicode: ∫₀^∞, ∀x∈ℝ, 你好世界, 🚀🎉==[[unicode]]
+
+This has malformed with unicode==[[bad-unicode]]
+
+[[normal]]==Normal content.==[[normal]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertEqual(len(malformed), 1)
+        
+        # Test 9: Square brackets with long code names
+        long_name = "b" * 50
+        text = f"""[[{long_name}]]==Content with long code name.==[[{long_name}]]
+
+This has malformed with long name==[[{long_name}-bad]]
+
+[[normal]]==Normal content.==[[normal]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertEqual(len(malformed), 1)
+        
+        # Test 10: Edge cases with square brackets
+        text = """[[edge]]==Edge case content.==[[edge]]
+
+This has edge case malformed==[[edge-bad]]
+
+[[empty]]==[[empty]]
+
+This has empty malformed==[[]]
+
+[[single]]==Single line content.==[[single]]"""
+        malformed = self.detector.find_all_malformed_blocks(text)
+        self.assertGreater(len(malformed), 0)  # Should detect malformed patterns
+    
     def test_malformed_codes_in_different_contexts(self):
         """Test malformed codes in various text contexts."""
         text = """# Heading

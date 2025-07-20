@@ -344,8 +344,24 @@ class WorkflowManager:
         
         if 'folder_stats' in self.stats:
             logger.info("=== FOLDER STATISTICS ===")
-            for folder_type, stats in self.stats['folder_stats'].items():
-                logger.info(f"{folder_type}: {stats['file_count']} files, {stats['total_words']} words")
+            folder_stats = self.stats['folder_stats']
+            # Existing: print folder stats
+            for folder_type, stats in folder_stats.items():
+                file_count = stats.get('file_count', 0)
+                word_count = stats.get('total_words', 0)
+                logger.info(f"{folder_type}: {file_count} files, {word_count} words")
+
+            # New: print percentage of originals for each folder
+            originals_words = folder_stats.get('originals', {}).get('total_words', 0)
+            if originals_words > 0:
+                logger.info("=== PERCENTAGE OF ORIGINALS ===")
+                total_percent = 0.0
+                for folder in ['coded', 'uncoded', 'duplicates', 'malformed']:
+                    words = folder_stats.get(folder, {}).get('total_words', 0)
+                    percent = (words / originals_words) * 100 if originals_words else 0
+                    total_percent += percent
+                    logger.info(f"{folder:10}: {percent:6.1f}% of originals")
+                logger.info(f"TOTAL     : {total_percent:6.1f}% of originals")
         
         if self.stats['errors']:
             logger.error(f"Errors encountered: {len(self.stats['errors'])}")

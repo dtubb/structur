@@ -118,6 +118,270 @@ Should be processed correctly.==[[square-multi]]
             curly_content = curly_file.read_text()
             self.assertIn("curly braces", curly_content)
     
+    def test_square_bracket_basic_functionality(self):
+        """Test basic square bracket functionality."""
+        basic_content = """# Basic Square Bracket Test
+        
+[[basic]]==This is basic square bracket content.==[[basic]]
+
+[[simple]]==Simple single line content.==[[simple]]"""
+        
+        self.create_test_file("basic_square.md", basic_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)
+        
+        coded_dir = self.output_dir / "coded"
+        self.assertTrue((coded_dir / "basic.md").exists())
+        self.assertTrue((coded_dir / "simple.md").exists())
+    
+    def test_square_bracket_whitespace_variations(self):
+        """Test square brackets with extreme whitespace variations."""
+        whitespace_content = """# Square Bracket Whitespace Test
+        
+[[  spaced-start  ]]==Content with spaces in code name==[[  spaced-start  ]]
+
+[[tab	name]]==Content with tab in code name==[[tab	name]]
+
+[[normal]]==  Content with leading spaces  ==[[normal]]
+
+[[trailing]]==Content with trailing spaces  ==[[trailing]]
+
+[[	tabs	]]==	Content with tabs everywhere	==[[	tabs	]]
+
+[[mixed   spacing]]==Content with mixed spacing patterns in name==[[mixed   spacing]]"""
+        
+        self.create_test_file("square_whitespace.md", whitespace_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 6)
+    
+    def test_square_bracket_long_names(self):
+        """Test square brackets with long code names."""
+        long_name = "b" * 50  # 50 characters - long but realistic
+        long_name_content = f"""# Square Bracket Long Name Test
+
+[[{long_name}]]==This block has a moderately long code name that tests the system's ability to handle longer naming patterns.==[[{long_name}]]
+
+[[normal]]==This is a normal block for comparison.==[[normal]]"""
+        
+        self.create_test_file("square_long_name.md", long_name_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)
+    
+    def test_square_bracket_multiline_content(self):
+        """Test square brackets with multi-line content."""
+        multiline_content = """# Square Bracket Multi-line Test
+
+[[multiline]]==This is a multi-line content block.
+It spans several lines and contains various content.
+Line 3 with more content.
+Line 4 with even more content.
+Final line of the block.==[[multiline]]
+
+[[single]]==Single line content for comparison.==[[single]]"""
+        
+        self.create_test_file("square_multiline.md", multiline_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)
+        
+        # Verify multi-line content is preserved
+        multiline_file = self.output_dir / "coded" / "multiline.md"
+        self.assertTrue(multiline_file.exists())
+        multiline_content = multiline_file.read_text()
+        self.assertIn("Line 3 with more content", multiline_content)
+        self.assertIn("Final line of the block", multiline_content)
+    
+    def test_square_bracket_nested_content(self):
+        """Test square brackets with nested-looking content."""
+        nested_content = """# Square Bracket Nested Content Test
+
+[[nested-looking]]==This content has [[brackets]] that look like they might be nested but are just text content.
+It also has [single brackets] and [[double brackets]] in the content.
+This should not confuse the parser.==[[nested-looking]]
+
+[[real-code]]==This is actual coded content.==[[real-code]]"""
+        
+        self.create_test_file("square_nested.md", nested_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)
+        
+        # Verify nested-looking content is preserved as text
+        nested_file = self.output_dir / "coded" / "nested-looking.md"
+        self.assertTrue(nested_file.exists())
+        nested_content = nested_file.read_text()
+        self.assertIn("[[brackets]]", nested_content)
+        self.assertIn("[single brackets]", nested_content)
+        self.assertIn("[[double brackets]]", nested_content)
+    
+    def test_square_bracket_empty_content(self):
+        """Test square brackets with empty content."""
+        empty_content = """# Square Bracket Empty Content Test
+
+[[empty]]==[[empty]]
+
+[[not-empty]]==This has content.==[[not-empty]]"""
+        
+        self.create_test_file("square_empty.md", empty_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 1)  # Only non-empty blocks are processed
+    
+    def test_square_bracket_small_content(self):
+        """Test square brackets with very small content."""
+        small_content = """# Square Bracket Small Content Test
+
+[[tiny]]==a==[[tiny]]
+
+[[small]]==ab==[[small]]
+
+[[medium]]==abc==[[medium]]"""
+        
+        self.create_test_file("square_small.md", small_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 3)
+    
+    def test_square_bracket_unicode_content(self):
+        """Test square brackets with unicode and special characters in content."""
+        unicode_content = """# Square Bracket Unicode Test
+
+[[unicode]]==This content has unicode characters: ∫₀^∞, ∀x∈ℝ, αβγδε, 你好世界, 🚀🎉==[[unicode]]
+
+[[symbols]]==Content with symbols: @#$%^&*()_+-=[]{}|;':",./<>?==[[symbols]]
+
+[[emoji]]==Content with emojis: 🎯📚💻🔥🌟==[[emoji]]"""
+        
+        self.create_test_file("square_unicode.md", unicode_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 3)
+        
+        # Verify unicode content is preserved
+        unicode_file = self.output_dir / "coded" / "unicode.md"
+        self.assertTrue(unicode_file.exists())
+        unicode_content = unicode_file.read_text()
+        self.assertIn("∫₀^∞", unicode_content)
+        self.assertIn("你好世界", unicode_content)
+        self.assertIn("🚀🎉", unicode_content)
+    
+    def test_square_bracket_closing_only_malformed(self):
+        """Test closing-only malformed square brackets."""
+        closing_only_content = """# Square Bracket Malformed Test
+
+This is normal text.
+
+This text ends with malformed closing==[[bad-bracket]]
+
+More normal text.
+
+Another malformed ending==[[another-bad]]
+
+[[good-code]]==This is properly formatted.==[[good-code]]"""
+        
+        self.create_test_file("square_malformed.md", closing_only_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 1)
+        
+        # Check that malformed content was detected
+        malformed_dir = self.output_dir / "malformed"
+        self.assertTrue(malformed_dir.exists())
+        malformed_files = list(malformed_dir.glob("*.md"))
+        self.assertGreater(len(malformed_files), 0)
+    
+    def test_square_bracket_incomplete_structures(self):
+        """Test incomplete square bracket structures."""
+        incomplete_content = """# Square Bracket Incomplete Test
+
+[[incomplete]]==This block is missing its closing
+
+[[complete]]==This block is complete.==[[complete]]
+
+[[another-incomplete]]==This is also incomplete
+
+[[final-complete]]==This one is complete too.==[[final-complete]]"""
+        
+        self.create_test_file("square_incomplete.md", incomplete_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)  # Only complete blocks
+    
+    def test_square_bracket_wrong_patterns(self):
+        """Test wrong bracket patterns."""
+        wrong_patterns_content = """# Square Bracket Wrong Patterns Test
+
+[wrong-single]==This uses single brackets.==[wrong-single]
+
+[[[too-many]]]==This uses too many brackets.==[[[too-many]]]
+
+[[correct]]==This uses correct double brackets.==[[correct]]
+
+[wrong-again]==Another single bracket attempt.==[wrong-again]"""
+        
+        self.create_test_file("square_wrong_patterns.md", wrong_patterns_content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 1)  # Only correct format
+    
     def test_long_code_names(self):
         """Test moderately long code names that might occur in practice."""
         long_name = "a" * 50  # 50 characters - long but realistic
