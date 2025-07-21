@@ -1,0 +1,7 @@
+2025-07-21 11:42:01,057 - src.processors.main_processor - INFO - Structur processor initialized with config: ProcessingConfig(input_folder=PosixPath('examples'), output_base=PosixPath('test_output_txt'), coded_folder='coded', uncoded_folder='uncoded', duplicates_folder='duplicates', malformed_folder='malformed', originals_folder='originals', preserve_codes_in_output=False, append_mode=True, global_duplicate_detection=True, supported_formats=['{{', '[['], codes_file=None, auto_codes_file=False, regenerate_codes=False)
+2025-07-21 11:42:01,057 - src.processors.main_processor - INFO - Configuration validation passed
+2025-07-21 11:42:01,057 - src.processors.main_processor - INFO - Processing single file: examples/codes.txt
+2025-07-21 11:42:01,057 - src.managers.workflow_manager - INFO - Processing file: examples/codes.txt
+2025-07-21 11:42:01,058 - src.managers.folder_manager - INFO - Created original copy: test_output_txt/originals/codes.txt
+2025-07-21 11:42:01,059 - src.managers.workflow_manager - INFO - Successfully processed: examples/codes.txt
+2025-07-21 11:42:01,059 - src.processors.main_processor - INFO - Single file processing stats: {'files_processed': 1, 'coded_blocks_found': 0, 'malformed_blocks_found': 0, 'duplicates_found': 0, 'total_words_processed': 0, 'errors': []}

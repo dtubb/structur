@@ -236,6 +236,116 @@ existing-code
         
         # Should return 0 on error
         self.assertEqual(created_count, 0)
+    
+    def test_get_markdown_files_md_only(self):
+        """Test getting markdown files when only .md files exist."""
+        # Create some .md files
+        (self.test_dir / "file1.md").write_text("content1")
+        (self.test_dir / "file2.md").write_text("content2")
+        (self.test_dir / "subdir").mkdir()
+        (self.test_dir / "subdir" / "file3.md").write_text("content3")
+        
+        # Create some non-supported files that should be ignored
+        (self.test_dir / "file.py").write_text("content")
+        (self.test_dir / "file.json").write_text("content")
+        
+        files = self.file_manager.get_markdown_files(self.test_dir)
+        
+        # Should find 3 .md files
+        self.assertEqual(len(files), 3)
+        
+        # Check that all files are .md files
+        for file_path in files:
+            self.assertEqual(file_path.suffix.lower(), ".md")
+        
+        # Check that files are sorted alphanumerically
+        file_names = [f.name for f in files]
+        self.assertEqual(file_names, ["file1.md", "file2.md", "file3.md"])
+    
+    def test_get_markdown_files_txt_only(self):
+        """Test getting text files when only .txt files exist."""
+        # Create some .txt files
+        (self.test_dir / "file1.txt").write_text("content1")
+        (self.test_dir / "file2.txt").write_text("content2")
+        (self.test_dir / "file3.txt").write_text("content3")
+        
+        # Create some non-supported files that should be ignored
+        (self.test_dir / "file.py").write_text("content")
+        (self.test_dir / "file.json").write_text("content")
+        
+        files = self.file_manager.get_markdown_files(self.test_dir)
+        
+        # Should find 3 .txt files
+        self.assertEqual(len(files), 3)
+        
+        # Check that all files are .txt files
+        for file_path in files:
+            self.assertEqual(file_path.suffix.lower(), ".txt")
+        
+        # Check that files are sorted alphanumerically
+        file_names = [f.name for f in files]
+        self.assertEqual(file_names, ["file1.txt", "file2.txt", "file3.txt"])
+    
+    def test_get_markdown_files_mixed_formats(self):
+        """Test getting both .md and .txt files when both exist."""
+        # Create mixed files
+        (self.test_dir / "file1.md").write_text("content1")
+        (self.test_dir / "file2.txt").write_text("content2")
+        (self.test_dir / "file3.md").write_text("content3")
+        (self.test_dir / "file4.txt").write_text("content4")
+        (self.test_dir / "subdir").mkdir()
+        (self.test_dir / "subdir" / "file5.md").write_text("content5")
+        (self.test_dir / "subdir" / "file6.txt").write_text("content6")
+        
+        # Create some files that should be ignored
+        (self.test_dir / "file.py").write_text("content")
+        (self.test_dir / "file.json").write_text("content")
+        
+        files = self.file_manager.get_markdown_files(self.test_dir)
+        
+        # Should find 6 files (3 .md + 3 .txt)
+        self.assertEqual(len(files), 6)
+        
+        # Check that all files are either .md or .txt
+        for file_path in files:
+            self.assertIn(file_path.suffix.lower(), [".md", ".txt"])
+        
+        # Check that files are sorted alphanumerically
+        file_names = [f.name for f in files]
+        expected_names = ["file1.md", "file2.txt", "file3.md", "file4.txt", "file5.md", "file6.txt"]
+        self.assertEqual(file_names, expected_names)
+    
+    def test_get_markdown_files_nonexistent_directory(self):
+        """Test getting files from a directory that doesn't exist."""
+        nonexistent_dir = self.test_dir / "nonexistent"
+        
+        files = self.file_manager.get_markdown_files(nonexistent_dir)
+        
+        # Should return empty list
+        self.assertEqual(files, [])
+    
+    def test_get_markdown_files_empty_directory(self):
+        """Test getting files from an empty directory."""
+        files = self.file_manager.get_markdown_files(self.test_dir)
+        
+        # Should return empty list
+        self.assertEqual(files, [])
+    
+    def test_get_markdown_files_natural_sorting(self):
+        """Test that files are sorted naturally (handling numbers properly)."""
+        # Create files with numbers in names
+        (self.test_dir / "file1.md").write_text("content1")
+        (self.test_dir / "file10.md").write_text("content10")
+        (self.test_dir / "file2.md").write_text("content2")
+        (self.test_dir / "file20.txt").write_text("content20")
+        (self.test_dir / "file3.txt").write_text("content3")
+        
+        files = self.file_manager.get_markdown_files(self.test_dir)
+        
+        # Check natural sorting (1, 2, 3, 10, 20)
+        file_names = [f.name for f in files]
+        expected_names = ["file1.md", "file2.md", "file3.txt", "file10.md", "file20.txt"]
+        self.assertEqual(file_names, expected_names)
 
 
 if __name__ == '__main__':

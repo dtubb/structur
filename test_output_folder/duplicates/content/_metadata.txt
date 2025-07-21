@@ -1,0 +1,5 @@
+Duplicate of: README.md (workflow)
+First seen in: README.md
+Content type: productivity
+Original content length: 7 chars
+Clean uncoded length: 7 chars

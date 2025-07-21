@@ -1,0 +1,36 @@
+2025-07-21 11:42:03,459 - src.processors.main_processor - INFO - Structur processor initialized with config: ProcessingConfig(input_folder=PosixPath('examples'), output_base=PosixPath('test_output_mixed'), coded_folder='coded', uncoded_folder='uncoded', duplicates_folder='duplicates', malformed_folder='malformed', originals_folder='originals', preserve_codes_in_output=False, append_mode=True, global_duplicate_detection=True, supported_formats=['{{', '[['], codes_file=None, auto_codes_file=False, regenerate_codes=False)
+2025-07-21 11:42:03,459 - src.processors.main_processor - INFO - Configuration validation passed
+2025-07-21 11:42:03,459 - src.processors.main_processor - INFO - Starting processing of folder: examples
+2025-07-21 11:42:03,459 - src.managers.workflow_manager - INFO - Starting folder processing: examples
+2025-07-21 11:42:03,460 - src.managers.workflow_manager - INFO - Found 3 files to process
+2025-07-21 11:42:03,460 - src.managers.workflow_manager - INFO - Processing file: examples/codes.txt
+2025-07-21 11:42:03,461 - src.managers.folder_manager - INFO - Created original copy: test_output_mixed/originals/codes.txt
+2025-07-21 11:42:03,462 - src.managers.workflow_manager - INFO - Successfully processed: examples/codes.txt
+2025-07-21 11:42:03,462 - src.managers.workflow_manager - INFO - Processing file: examples/example.md
+2025-07-21 11:42:03,463 - src.managers.folder_manager - INFO - Created original copy: test_output_mixed/originals/example.md
+2025-07-21 11:42:03,467 - src.managers.workflow_manager - INFO - Successfully processed: examples/example.md
+2025-07-21 11:42:03,467 - src.managers.workflow_manager - INFO - Processing file: examples/README.md
+2025-07-21 11:42:03,467 - src.managers.folder_manager - INFO - Created original copy: test_output_mixed/originals/README.md
+2025-07-21 11:42:03,471 - src.managers.workflow_manager - INFO - Successfully processed: examples/README.md
+2025-07-21 11:42:03,474 - src.managers.workflow_manager - INFO - Folder processing complete. Stats: {'files_processed': 3, 'coded_blocks_found': 10, 'malformed_blocks_found': 0, 'duplicates_found': 1, 'total_words_processed': 959, 'errors': [], 'folder_stats': {'coded': {'file_count': 5, 'total_size_bytes': 1219, 'total_words': 202, 'folder_path': 'test_output_mixed/coded'}, 'uncoded': {'file_count': 3, 'total_size_bytes': 2029, 'total_words': 295, 'folder_path': 'test_output_mixed/uncoded'}, 'duplicates': {'file_count': 1, 'total_size_bytes': 7, 'total_words': 1, 'folder_path': 'test_output_mixed/duplicates'}, 'malformed': {'file_count': 0, 'total_size_bytes': 0, 'total_words': 0, 'folder_path': 'test_output_mixed/malformed'}, 'originals': {'file_count': 2, 'total_size_bytes': 3336, 'total_words': 461, 'folder_path': 'test_output_mixed/originals'}}, 'duplicate_detector_stats': {'total_content_registered': 13, 'duplicate_count': 1, 'unique_content_count': 13}}
+2025-07-21 11:42:03,474 - src.managers.workflow_manager - INFO - Performing cleanup and finalization
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - === PROCESSING REPORT ===
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - Files processed: 3
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - Coded blocks found: 10
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - Malformed blocks found: 0
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - Duplicates found: 1
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - Total words processed: 959
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - === FOLDER STATISTICS ===
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - coded: 5 files, 202 words
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - uncoded: 3 files, 295 words
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - duplicates: 1 files, 1 words
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - malformed: 0 files, 0 words
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - originals: 2 files, 461 words
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - === PERCENTAGE OF ORIGINALS ===
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - coded     :   43.8% of originals
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - uncoded   :   64.0% of originals
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - duplicates:    0.2% of originals
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - malformed :    0.0% of originals
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - TOTAL     :  108.0% of originals
+2025-07-21 11:42:03,476 - src.managers.workflow_manager - INFO - === END REPORT ===
+2025-07-21 11:42:03,476 - src.processors.main_processor - INFO - Processing completed successfully

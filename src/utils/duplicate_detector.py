@@ -69,6 +69,9 @@ class DuplicateDetector:
         
         if content_hash in self.content_hashes:
             first_file, first_code = self.content_hashes[content_hash]
+            # Don't consider content a duplicate of itself
+            if first_file == source_file and first_code == code:
+                return False
             logger.debug(f"Duplicate detected: {source_file}:{code} matches {first_file}:{first_code}")
             return True
         

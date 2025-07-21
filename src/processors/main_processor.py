@@ -105,8 +105,9 @@ class StructurProcessor:
             logger.error(f"File does not exist: {file_path}")
             return False
         
-        if not file_path.suffix.lower() == '.md':
-            logger.warning(f"File is not a markdown file: {file_path}")
+        # Check if file is a supported format (.md or .txt)
+        if file_path.suffix.lower() not in ['.md', '.txt']:
+            logger.warning(f"File is not a supported format (expected .md or .txt): {file_path}")
             return False
         
         logger.info(f"Processing single file: {file_path}")

@@ -177,8 +177,10 @@ class WorkflowManager:
         if uncoded_content and uncoded_content.strip():
             # Check for duplicates
             if self.duplicate_detector.register_content(uncoded_content, filename, "uncoded"):
+                # Convert filename to .md extension for uncoded content
+                uncoded_filename = Path(filename).with_suffix('.md').name
                 # Append to uncoded folder (folder_manager handles duplicate checking)
-                self.folder_manager.append_content_to_folder('uncoded', filename, uncoded_content)
+                self.folder_manager.append_content_to_folder('uncoded', uncoded_filename, uncoded_content)
             else:
                 # Is a duplicate
                 self._save_duplicate_content(uncoded_content, filename, "uncoded")
@@ -267,7 +269,7 @@ class WorkflowManager:
     
     def process_folder(self, input_folder: Path) -> Dict[str, int]:
         """
-        Process all markdown files in a folder.
+        Process all markdown and text files in a folder.
         
         Args:
             input_folder: Path to input folder
@@ -277,17 +279,17 @@ class WorkflowManager:
         """
         logger.info(f"Starting folder processing: {input_folder}")
         
-        # Get all markdown files
-        md_files = self.file_manager.get_markdown_files(input_folder)
+        # Get all markdown and text files
+        files_to_process = self.file_manager.get_markdown_files(input_folder)
         
-        if not md_files:
-            logger.warning(f"No markdown files found in: {input_folder}")
+        if not files_to_process:
+            logger.warning(f"No markdown or text files found in: {input_folder}")
             return self.stats
         
-        logger.info(f"Found {len(md_files)} markdown files to process")
+        logger.info(f"Found {len(files_to_process)} files to process")
         
         # Process each file
-        for file_path in md_files:
+        for file_path in files_to_process:
             self.process_single_file(file_path)
         
         # Calculate final statistics

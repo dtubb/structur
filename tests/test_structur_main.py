@@ -87,6 +87,61 @@ Some uncoded text here.
         self.assertIn('folder_stats', results)
         self.assertIn('coded', results['folder_stats'])
         self.assertIn('uncoded', results['folder_stats'])
+    
+    def test_txt_file_processing(self):
+        """Test processing .txt files specifically."""
+        content = """# Test Text Document
+        
+{{workflow}}==This is a workflow note about daily tasks.=={{workflow}}
+
+Some uncoded text here that should be preserved.
+
+{{productivity}}==Tips for better productivity include time blocking.=={{productivity}}
+
+More uncoded text at the end.
+        """
+        
+        self.create_test_file("test.txt", content)
+        
+        results = process_folder(
+            input_folder=self.input_dir,
+            output_folder=self.output_dir
+        )
+        
+        # Check that all output folders were created
+        self.assertTrue((self.output_dir / "coded").exists())
+        self.assertTrue((self.output_dir / "uncoded").exists())
+        self.assertTrue((self.output_dir / "duplicates").exists())
+        self.assertTrue((self.output_dir / "malformed").exists())
+        self.assertTrue((self.output_dir / "originals").exists())
+        
+        # Check that coded files were created
+        workflow_file = self.output_dir / "coded" / "workflow.md"
+        productivity_file = self.output_dir / "coded" / "productivity.md"
+        
+        self.assertTrue(workflow_file.exists())
+        self.assertTrue(productivity_file.exists())
+        
+        # Check content
+        workflow_content = workflow_file.read_text()
+        self.assertIn("daily tasks", workflow_content)
+        
+        productivity_content = productivity_file.read_text()
+        self.assertIn("time blocking", productivity_content)
+        
+        # Check uncoded content
+        uncoded_files = list((self.output_dir / "uncoded").glob("*.md"))
+        self.assertEqual(len(uncoded_files), 1)
+        uncoded_content = uncoded_files[0].read_text()
+        self.assertIn("Some uncoded text here", uncoded_content)
+        self.assertIn("More uncoded text at the end", uncoded_content)
+        
+        # Check statistics
+        self.assertEqual(results['files_processed'], 1)
+        self.assertEqual(results['coded_blocks_found'], 2)
+        self.assertIn('folder_stats', results)
+        self.assertIn('coded', results['folder_stats'])
+        self.assertIn('uncoded', results['folder_stats'])
 
 
 class TestExtensiveContentScenarios(unittest.TestCase):
@@ -1471,10 +1526,10 @@ class TestRecursiveFolderProcessingAndSorting(unittest.TestCase):
         self.assertTrue((self.output_dir / "coded" / "test.md").exists())
     
     def test_mixed_file_types(self):
-        """Test processing folder with mixed file types (only .md should be processed)."""
+        """Test processing folder with mixed file types (.md and .txt should be processed)."""
         # Create mixed file types
         (self.input_dir / "document.md").write_text("{{doc}}==Markdown content=={{doc}}")
-        (self.input_dir / "document.txt").write_text("Text content")
+        (self.input_dir / "document.txt").write_text("{{txt}}==Text content=={{txt}}")
         (self.input_dir / "document.docx").write_text("Word content")
         (self.input_dir / "image.png").write_text("Image content")
         
@@ -1484,24 +1539,25 @@ class TestRecursiveFolderProcessingAndSorting(unittest.TestCase):
             output_folder=self.output_dir
         )
         
-        # Only markdown files should be processed
-        self.assertEqual(results['files_processed'], 1)
-        self.assertEqual(results['coded_blocks_found'], 1)
+        # Both .md and .txt files should be processed
+        self.assertEqual(results['files_processed'], 2)
+        self.assertEqual(results['coded_blocks_found'], 2)
         
-        # Check that only .md file was processed
+        # Check that both .md and .txt files were processed
         self.assertTrue((self.output_dir / "coded" / "doc.md").exists())
+        self.assertTrue((self.output_dir / "coded" / "txt.md").exists())
     
     def test_empty_folders(self):
-        """Test processing empty folders and folders with no markdown files."""
+        """Test processing empty folders and folders with no supported files."""
         # Create empty folder
         empty_folder = self.input_dir / "empty"
         empty_folder.mkdir()
         
-        # Create folder with non-markdown files
+        # Create folder with non-supported files
         mixed_folder = self.input_dir / "mixed"
         mixed_folder.mkdir()
-        (mixed_folder / "file.txt").write_text("Text content")
         (mixed_folder / "file.docx").write_text("Word content")
+        (mixed_folder / "file.pdf").write_text("PDF content")
         
         # Process
         results = process_folder(

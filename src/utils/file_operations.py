@@ -121,20 +121,23 @@ class FileManager:
     
     def get_markdown_files(self, directory: Path) -> List[Path]:
         """
-        Get all markdown files in a directory recursively, sorted alphanumerically.
+        Get all markdown and text files in a directory recursively, sorted alphanumerically.
         
         Args:
             directory: Directory to search
             
         Returns:
-            List of markdown file paths, sorted alphanumerically
+            List of markdown and text file paths, sorted alphanumerically
         """
         try:
             if not directory.exists():
                 logger.warning(f"Directory does not exist: {directory}")
                 return []
             
+            # Get both .md and .txt files
             md_files = list(directory.rglob("*.md"))
+            txt_files = list(directory.rglob("*.txt"))
+            all_files = md_files + txt_files
             
             # Sort files alphanumerically (like Finder)
             def natural_sort_key(path):
@@ -144,10 +147,10 @@ class FileManager:
                 return [int(text) if text.isdigit() else text.lower()
                        for text in re.split('([0-9]+)', path.name)]
             
-            md_files.sort(key=natural_sort_key)
+            all_files.sort(key=natural_sort_key)
             
-            logger.debug(f"Found {len(md_files)} markdown files in {directory}")
-            return md_files
+            logger.debug(f"Found {len(all_files)} files ({len(md_files)} .md, {len(txt_files)} .txt) in {directory}")
+            return all_files
             
         except Exception as e:
             logger.error(f"Failed to get markdown files from {directory}: {e}")

@@ -38,7 +38,7 @@ def setup_logging(verbose: bool = False) -> None:
 def process(
     input_folder: Path = typer.Argument(
         ...,
-        help="Path to the folder containing markdown files to process",
+        help="Path to the folder containing markdown and text files to process",
         exists=True,
         file_okay=False,
         dir_okay=True
@@ -105,9 +105,9 @@ def process(
     )
 ):
     """
-    Process markdown files to extract and organize coded content.
+    Process markdown and text files to extract and organize coded content.
     
-    This command processes all markdown files in the input folder using a removal-based
+    This command processes all markdown and text files in the input folder using a removal-based
     approach that ensures no data loss. Content is organized into separate folders
     based on type (coded, uncoded, duplicates, malformed, already coded).
     """
@@ -164,7 +164,7 @@ def process(
 def single(
     file_path: Path = typer.Argument(
         ...,
-        help="Path to the markdown file to process",
+        help="Path to the markdown or text file to process",
         exists=True,
         file_okay=True,
         dir_okay=False
@@ -186,9 +186,9 @@ def single(
     )
 ):
     """
-    Process a single markdown file.
+    Process a single markdown or text file.
     
-    This command processes a single markdown file and extracts coded content
+    This command processes a single markdown or text file and extracts coded content
     using the same reliable, removal-based approach.
     """
     setup_logging(verbose)
